@@ -2,10 +2,13 @@
 
 
 #include "FPSProject/Player/PlayerCharacter.h"
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -13,6 +16,23 @@ APlayerCharacter::APlayerCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	GetCapsuleComponent()->InitCapsuleSize(25.f, 96.0f);
+
+	// Create a CameraComponent	
+	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
+	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, 60.f)); // Position the camera
+	FirstPersonCamera->bUsePawnControlRotation = true;
+
+	AssaultRifle = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("AssaultRifleComp"));
+	AssaultRifle->SetupAttachment(FirstPersonCamera); 
+	ConstructorHelpers::FObjectFinder<USkeletalMesh> TempGunMesh(TEXT("/Script/Engine.SkeletalMesh'/Game/FPS_Weapon_Bundle/Weapons/Meshes/AR4/SK_AR4.SK_AR4'"));
+	if (TempGunMesh.Succeeded())
+	{
+		AssaultRifle->SetSkeletalMesh(TempGunMesh.Object);
+		AssaultRifle->SetRelativeLocation(FVector(((38.939983, 28.802384, -28.206522))));
+	}
 }
 
 // Called when the game starts or when spawned
@@ -56,9 +76,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Jump
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-		// Jump
+		// Sprint
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &APlayerCharacter::SprintStart);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &APlayerCharacter::SprintStop);
+		// Fire
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &APlayerCharacter::Fire);
 	}
 }
 
@@ -121,5 +143,25 @@ void APlayerCharacter::SprintStart(const FInputActionValue& Value)
 void APlayerCharacter::SprintStop(const FInputActionValue& Value)
 {
 	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+}
+
+void APlayerCharacter::Fire(const FInputActionValue& Value)
+{
+	FVector startPos = FirstPersonCamera->GetComponentLocation();
+	FVector endPos = FirstPersonCamera->GetComponentLocation() + FirstPersonCamera->GetForwardVector() * 5000;
+	FHitResult hitInfo;
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+	// output LineTrace through Channel filter
+	bool bHit = GetWorld()->LineTraceSingleByChannel(hitInfo, startPos, endPos, ECC_Visibility, params);
+	if (bHit)
+	{
+		// transform bullet effect
+		FTransform bulletTrans;
+		// Impact location
+		bulletTrans.SetLocation(hitInfo.ImpactPoint);
+		// generate instance bullet impact
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), bulletEffectFactory, bulletTrans);
+	}
 }
 

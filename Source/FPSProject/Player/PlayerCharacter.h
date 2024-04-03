@@ -12,6 +12,10 @@ class FPSPROJECT_API APlayerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	// Camera
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* FirstPersonCamera;
+
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputMappingContext* DefaultMappingContext;
@@ -37,9 +41,13 @@ class FPSPROJECT_API APlayerCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* JumpAction;
 
-	/** Jump Input Action */
+	/** Sprint Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SprintAction;
+
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* FireAction;
 
 public:
 	// Sets default values for this character's properties
@@ -70,4 +78,16 @@ public:
 	/** Called for Sprint input*/
 	void SprintStart(const FInputActionValue& Value);
 	void SprintStop(const FInputActionValue& Value);
+	
+	/** Called for Fire input */
+	void Fire(const FInputActionValue& Value);
+public:
+	/** Gun skeletalMesh */
+	UPROPERTY(VisibleAnywhere, Category = GunMesh)
+	class USkeletalMeshComponent* AssaultRifle;
+
+	UPROPERTY(EditAnywhere, Category =BulletEffect)
+	class UParticleSystem* bulletEffectFactory;
+
+	
 };
